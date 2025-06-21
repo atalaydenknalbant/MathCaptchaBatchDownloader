@@ -3,7 +3,7 @@
 Render **15** math‐CAPTCHAs at a time in an ASP.NET MVC‑5 app,  
 download them as a ZIP (filenames are `unknown_<token>.png`),  
 auto‑refresh the page, and repeat until you’ve harvested the number of
-batches you want (default = 100).
+batches you want (default = 2000).
 
 ---
 
@@ -21,9 +21,9 @@ batches you want (default = 100).
 
 ## Project goals
 * **Pixel‑perfect capture** – copies rendered pixels from the
-  browser’s memory, so you never get 1 × 1 blanks.
+  browser’s memory, so you never get blank captchas.
 * **Hands‑free bulk download** – one click starts a loop that produces
-  *N* ZIPs (100 by default) with automatic page reloads between cycles.
+  *N* ZIPs (2000 by default) with automatic page reloads between cycles.
 * **Anonymous filenames** – every PNG is
   `unknown_<guid>.png`, where `<guid>` is the `t=` token from the captcha
   URL.
@@ -68,16 +68,16 @@ MathCaptchaBatchDownloader/
 
 ## 🚀 Quick start
 ```powershell
-git clone https://github.com/<your‑account>/MathCaptchaBatchDownloader.git
+git clone https://github.com/atalaydenknalbant/MathCaptchaBatchDownloader.git
 cd MathCaptchaBatchDownloader
 
 dotnet restore
 dotnet build -c Release
 
 iisexpress /path:%CD% /port:5000
-start http://localhost:5000/
+start http://localhost:5000/Home/BulkCaptchas
 ```
-Click **Download 100×**; page reloads automatically until 100 ZIPs save.
+Click **Download 100×**; page reloads automatically until 2000 ZIPs save.
 
 ---
 
@@ -85,7 +85,7 @@ Click **Download 100×**; page reloads automatically until 100 ZIPs save.
 | What | Where | Default |
 |------|-------|---------|
 | CAPTCHAs per page | `BulkCaptchas.cshtml` | 15 |
-| ZIPs per click | `const TOTAL_ZIPS` | 100 |
+| ZIPs per click | `const TOTAL_ZIPS` | 2000 |
 | Filename prefix | same script | `"unknown"` |
 | Browser prompt | browser settings | disable “Ask where to save each file” |
 
@@ -101,4 +101,4 @@ Click **Download 100×**; page reloads automatically until 100 ZIPs save.
 ---
 
 ## 📜 License
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
