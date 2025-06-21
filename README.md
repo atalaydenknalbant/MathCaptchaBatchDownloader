@@ -27,8 +27,9 @@ batches you want (default = 2000).
 * **Anonymous filenames** – every PNG is
   `unknown_<guid>.png`, where `<guid>` is the `t=` token from the captcha
   URL.
-* **No backend answers** – filenames intentionally use `unknown_` prefix—
-  no reflection into CaptchaMvc internals.
+* **Powered by CaptchaMvc** – uses the NuGet package  
+  **[CaptchaMvc.Mvc5 1.5.0](https://www.nuget.org/packages/CaptchaMvc.Mvc5)**  
+  to generate math CAPTCHAs server‑side.
 
 ---
 
