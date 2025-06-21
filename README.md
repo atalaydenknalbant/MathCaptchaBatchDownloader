@@ -12,10 +12,9 @@ batches you want (default = 2000).
 2. [Folder structure](#folder-structure)  
 3. [Prerequisites](#prerequisites)  
 4. [Quick start](#quick-start)  
-5. [How it works](#how-it-works)  
-6. [Configuration](#configuration)  
-7. [Troubleshooting](#troubleshooting)  
-8. [License](#license)
+5. [Configuration](#%EF%B8%8Fconfiguration)  
+6. [Troubleshooting](#troubleshooting)  
+7. [License](#license)
 
 ---
 
