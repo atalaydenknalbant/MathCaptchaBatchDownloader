@@ -101,4 +101,4 @@ Click **Download 100×**; page reloads automatically until 2000 ZIPs save.
 ---
 
 ## 📜 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) for details.
