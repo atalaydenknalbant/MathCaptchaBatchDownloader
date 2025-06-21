@@ -1,0 +1,112 @@
+@using CaptchaMvc.HtmlHelpers
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Bulk captcha downloader</title>
+
+    <!-- JSZip + FileSaver -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        body  { font-family:sans-serif; }
+        .grid { display:grid; grid-template-columns:repeat(5,auto); gap:8px; margin-bottom:20px; }
+        img   { border:1px solid #ccc; }
+        button{ padding:8px 16px; }
+        #status{ margin:12px 0; color:#3a7; }
+    </style>
+</head>
+<body>
+    <h2>15 Math-captchas</h2>
+    <p id="status">Ready</p>
+
+    <div id="grid" class="grid">
+        @for (var i = 0; i < 15; i++) { @Html.MathCaptcha() }
+    </div>
+
+    <button id="dl">Download 2000 Times</button>
+
+<script>
+    /* how many ZIPs we want */
+    const TOTAL_ZIPS = 2000;
+
+    const grid   = document.getElementById('grid');
+    const status = document.getElementById('status');
+    const btn    = document.getElementById('dl');
+
+    function waitAll() {
+        const imgs = [...grid.querySelectorAll('img')];
+        return Promise.all(imgs.map(i => i.complete ? null
+                                                    : new Promise(r => i.onload = r)));
+    }
+
+    async function makeZipBlob() {
+        await waitAll();
+        const zip = new JSZip();
+
+        for (const img of grid.querySelectorAll('img')) {
+            const cv = document.createElement('canvas');
+            cv.width  = img.naturalWidth;
+            cv.height = img.naturalHeight;
+            cv.getContext('2d').drawImage(img, 0, 0);
+
+            const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+            const url  = new URL(img.src, location.origin);
+            const token = url.searchParams.get('t')
+                       || url.searchParams.get('id')
+                       || crypto.randomUUID().replace(/-/g,'').substring(0,10);
+            zip.file(`unknown_${token}.png`, blob);
+        }
+        return zip.generateAsync({ type:'blob' });
+    }
+
+    async function runCycle() {
+        let left = parseInt(localStorage.getItem('todo') || '0', 10);
+        if (left === 0) { status.textContent = 'Done!'; btn.disabled = false; return; }
+
+        status.textContent = `Packing ZIP (${TOTAL_ZIPS-left+1}/${TOTAL_ZIPS})…`;
+        const blobZip = await makeZipBlob();
+
+        /* safe browser-friendly download */
+        const url  = URL.createObjectURL(blobZip);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `captchas_${Date.now()}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        left--;
+        localStorage.setItem('todo', left);
+
+        if (left > 0) {
+            status.textContent = `Reloading… ${left} ZIPs to go`;
+            setTimeout(() => location.reload(), 500);     // allow save-dialog
+        } else {
+            status.textContent = 'All downloads complete 🎉';
+        }
+    }
+
+    btn.addEventListener('click', () => {
+        btn.disabled = true;
+        localStorage.setItem('todo', TOTAL_ZIPS);
+        runCycle();                   // first cycle under user gesture
+    });
+
+    /* auto-continue on reload */
+    window.addEventListener('DOMContentLoaded', () => {
+        const left = parseInt(localStorage.getItem('todo') || '0', 10);
+        if (left > 0) {
+            btn.disabled = true;
+            status.textContent = `Continuing… ${left} ZIPs remaining`;
+            runCycle();
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+@using CaptchaMvc.HtmlHelpers
+@{
+    Layout = null;
+    int cnt = Convert.ToInt32(Request["count"] ?? "15");
+}
+
+@for (var i = 0; i < cnt; i++) { @Html.MathCaptcha() }
+
