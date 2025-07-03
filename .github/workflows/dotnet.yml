@@ -1,0 +1,67 @@
+# .github/workflows/deploy.yml
+name: Build & Deploy ASP.NET MVC (net48) to GitHub Pages
+
+on:
+  push:
+    branches: 
+      - main
+
+permissions:
+  pages: write     # allow publishing to GitHub Pages
+  id-token: write  # allow secure deploy
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # 1) Check out the repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2) Install MSBuild (Visual Studio 2022)
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      # 3) Restore all NuGet packages
+      - name: Restore NuGet packages
+        shell: cmd
+        run: |
+          nuget restore MathCaptchaBatchDownloader.sln
+
+      # 4) Build your solution in Release mode
+      - name: Build solution
+        shell: cmd
+        run: |
+          msbuild MathCaptchaBatchDownloader.sln /p:Configuration=Release
+
+      # 5) Publish the web app to a local 'publish/' folder
+      - name: Publish to filesystem
+        shell: cmd
+        run: |
+          msbuild MathCaptchaBatchDownloader\MathCaptchaBatch.csproj ^
+            /p:Configuration=Release ^
+            /p:DeployOnBuild=true ^
+            /p:WebPublishMethod=FileSystem ^
+            /p:PublishUrl="%CD%\publish"
+          REM create a .nojekyll file so Pages won’t strip folders that start with “_”
+          type nul > publish\.nojekyll
+
+      # 6) Upload the 'publish/' folder as a Pages artifact
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # 7) Download the previously‐uploaded artifact
+      - name: Download Pages artifact
+        uses: actions/download-pages-artifact@v2
+
+      # 8) Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
