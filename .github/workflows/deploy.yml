@@ -17,7 +17,7 @@ jobs:
 
       # Install MSBuild (adds it to PATH)
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1
+        uses: microsoft/setup-msbuild@v2
 
       - name: Restore & Build
         shell: cmd
