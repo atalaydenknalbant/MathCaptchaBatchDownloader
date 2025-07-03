@@ -6,63 +6,45 @@ on:
     branches: [ main ]
 
 permissions:
-  pages: write     # allow GitHub Pages deployment
-  id-token: write  # allow secure token issuance
+  pages: write
+  id-token: write
 
 jobs:
   build:
-    name: Restore, Build & Publish
     runs-on: windows-latest
 
     steps:
-      # 1) Check out your repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2) Install MSBuild tooling (Visual Studio)
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # 3) Restore packages & build the project
       - name: Restore & Build with MSBuild
         shell: cmd
         run: |
-          REM Restore NuGet packages for the SDK-style net48 project
           msbuild MathCaptchaBatch.csproj /t:Restore /p:Configuration=Release
-          
-          REM Build into bin\Release\
           msbuild MathCaptchaBatch.csproj /p:Configuration=Release
 
-      # 4) Publish to 'publish/' folder via FileSystem
       - name: Publish to filesystem
         shell: cmd
         run: |
-          REM FileSystem publish for GitHub Pages
           msbuild MathCaptchaBatch.csproj ^
             /p:Configuration=Release ^
             /p:DeployOnBuild=true ^
             /p:WebPublishMethod=FileSystem ^
             /p:PublishUrl="%CD%\publish"
-
-          REM Prevent Jekyll from stripping _-folders
           type nul > publish\.nojekyll
 
-      # 5) Upload the 'publish/' directory as a Pages artifact
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: publish
 
   deploy:
-    name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      # 6) Download the artifact from the build job
-      - name: Download Pages artifact
-        uses: actions/download-pages-artifact@v1
-
-      # 7) Deploy it to your GitHub Pages endpoint
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
