@@ -1,6 +1,6 @@
 # MathCaptchaBatchDownloader
 
-Render **15** math‐CAPTCHAs(CaptchaMvc.Mvc5 1.5.0) at a time in an ASP.NET MVC‑5 app,  
+Render **15**(Maximum number of attempts allowed before blank CAPTCHAs appear) math‐CAPTCHAs(CaptchaMvc.Mvc5 1.5.0) at a time in an ASP.NET MVC‑5 app,  
 download them as a ZIP (filenames are `unknown_<token>.png`),  
 auto‑refresh the page, and repeat until you’ve harvested the number of
 batches you want (default = 2000).
