@@ -1,0 +1,40 @@
+name: Build & Deploy .NET Framework 4.8 App
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-2019    # includes .NET Framework 4.8 by default
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore & Build with MSBuild
+        shell: cmd
+        run: msbuild MathCaptchaBatch.csproj /p:Configuration=Release
+
+      - name: Publish to FileSystem
+        shell: cmd
+        run: msbuild MathCaptchaBatch.csproj ^
+               /p:Configuration=Release ^
+               /p:DeployOnBuild=true ^
+               /p:WebPublishMethod=FileSystem ^
+               /p:PublishUrl="%GITHUB_WORKSPACE%\publish"
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - uses: actions/deploy-pages@v4
