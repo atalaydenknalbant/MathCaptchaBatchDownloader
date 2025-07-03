@@ -3,72 +3,54 @@ name: Build & Deploy .NET Framework 4.8 App
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: windows-2022
-    steps:
-      # 1) Check out your repository
-      - uses: actions/checkout@v3
 
-      # 2) Install MSBuild (Visual Studio 2022)
+    steps:
+      # 1) Check out the repo
+      - uses: actions/checkout@v4
+
+      # 2) Ensure msbuild.exe is on PATH
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: 'latest'           # pick up VS2022+ :contentReference[oaicite:3]{index=3}
 
-      # 3) Restore NuGet packages and build in Release
+      # 3) Restore NuGet packages and build the project
       - name: Restore & Build
         shell: cmd
         run: |
-          msbuild MathCaptchaBatch.csproj /t:Restore /p:Configuration=Release   # restore only :contentReference[oaicite:4]{index=4}
-          msbuild MathCaptchaBatch.csproj /p:Configuration=Release             # compile into bin\ :contentReference[oaicite:5]{index=5}
+          REM Restore NuGet packages for project
+          msbuild MathCaptchaBatchDownloader\MathCaptchaBatch.csproj /t:Restore /p:Configuration=Release
+          REM Build project
+          msbuild MathCaptchaBatchDownloader\MathCaptchaBatch.csproj /t:Build /p:Configuration=Release
 
-      # 4) Publish to a local folder via FileSystem
+      # 4) Publish to a folder for GitHub Pages
       - name: Publish to filesystem
-        shell: pwsh
+        shell: cmd
         run: |
-          # Define publish directory
-          $publishDir = Join-Path $Env:GITHUB_WORKSPACE 'publish'
-          if (-not (Test-Path $publishDir)) {
-            New-Item -ItemType Directory -Path $publishDir | Out-Null
-          }
-          
-          # FileSystem publish using MSBuild
-          msbuild MathCaptchaBatch.csproj `
-            /p:Configuration=Release `
-            /p:DeployOnBuild=true `
-            /p:WebPublishMethod=FileSystem `
-            /p:PublishUrl="$publishDir"              # outputs site into publish\ :contentReference[oaicite:6]{index=6}
+          REM Publish web app to 'publish' directory
+          msbuild MathCaptchaBatchDownloader\MathCaptchaBatch.csproj ^
+            /p:Configuration=Release ^
+            /p:DeployOnBuild=true ^
+            /p:WebPublishMethod=FileSystem ^
+            /p:PublishUrl="%CD%\publish"
 
-          # Prevent Jekyll from stripping underscores
-          New-Item -ItemType File -Path (Join-Path $publishDir '.nojekyll') -Force | Out-Null
-
-      # 5) Upload the published site as an artifact
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3    # persists files for deployment :contentReference[oaicite:7]{index=7}
+      # 5) Upload the 'publish' folder as a Pages artifact
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v1
         with:
           path: publish
-
-    outputs:
-      page_url: ${{ steps.upload-pages-artifact.outputs.page_url }}
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
 
-    # 6) Deploy to the github-pages environment
-    permissions:
-      pages: write         # required to publish :contentReference[oaicite:8]{index=8}
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ needs.build.outputs.page_url }}
-
     steps:
+      # 6) Fetch the Pages artifact
+      - uses: actions/download-pages-artifact@v1
+
+      # 7) Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4                # publishes artifact to Pages :contentReference[oaicite:9]{index=9}
+        uses: actions/deploy-pages@v1
