@@ -1,50 +1,67 @@
 name: Build & Deploy .NET Framework 4.8 App
 
+# 1) Trigger this workflow on pushes to main
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
+# 2) Grant permissions to write Pages and issue OIDC tokens
 permissions:
   pages: write
   id-token: write
 
 jobs:
   build:
+    name: Restore, Build & Publish
     runs-on: windows-2022
 
     steps:
-      - uses: actions/checkout@v4
+      # 2.1) Check out your code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Install MSBuild (adds it to PATH)
+      # 2.2) Install MSBuild tooling
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1
 
-      - name: Restore & Build
-        shell: cmd
-        run: >
-          msbuild MathCaptchaBatch.csproj /t:Restore /p:Configuration=Release
-          & msbuild MathCaptchaBatch.csproj /p:Configuration=Release
+      # 2.3) Restore, Build and publish to a local 'publish/' folder
+      - name: Restore, Build & Publish to filesystem
+        shell: pwsh
+        run: |
+          # define where we'll publish
+          $publishDir = Join-Path $Env:GITHUB_WORKSPACE 'publish'
+          if (-not (Test-Path $publishDir)) {
+            New-Item -ItemType Directory -Path $publishDir | Out-Null
+          }
 
-      - name: Publish to filesystem
-        shell: cmd
-        run: >
-          msbuild MathCaptchaBatch.csproj
-            /p:Configuration=Release
-            /p:DeployOnBuild=true
-            /p:WebPublishMethod=FileSystem
-            /p:PublishUrl="%GITHUB_WORKSPACE%\publish"
+          # Restore packages and build+publish in one go
+          msbuild '.\MathCaptchaBatchDownloader\MathCaptchaBatch.csproj' `
+            /t:Restore;Build `
+            /p:Configuration=Release `
+            /p:DeployOnBuild=true `
+            /p:WebPublishMethod=FileSystem `
+            /p:PublishUrl="$publishDir"
 
+          # (Optional) Prevent Jekyll processing on Pages if you have folders starting with _
+          New-Item -ItemType File -Path (Join-Path $publishDir '.nojekyll') -Force | Out-Null
+
+      # 2.4) Upload the 'publish/' directory as a Pages artifact
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: publish
 
   deploy:
-    needs: build
+    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
+    needs: build
+
     permissions:
       pages: write
       id-token: write
 
     steps:
-      - uses: actions/deploy-pages@v4
+      # 3) Deploy the artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
