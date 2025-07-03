@@ -1,0 +1,142 @@
+@using CaptchaMvc.HtmlHelpers
+@{
+    Layout = null;   // minimal layout
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Bulk Captcha Downloader</title>
+
+    <!-- JSZip + FileSaver already loaded -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        body   { font-family: sans-serif; padding: 20px; }
+        .grid  { display: grid;
+                  grid-template-columns: repeat(5, auto);
+                  gap: 8px;
+                  margin-bottom: 16px; }
+        img    { border: 1px solid #ccc; }
+        label  { margin-right: 8px; }
+        input  { width: 80px; padding: 4px; }
+        button { padding: 8px 16px; margin-left: 12px; }
+        #status { margin: 12px 0; color: #3a7; }
+    </style>
+</head>
+<body>
+    <h2>15 Math-captchas</h2>
+
+    <div>
+        <label for="count"># of ZIPs to download:</label>
+        <input type="number"
+               id="count"
+               value="2000"
+               min="1"
+               step="1" />
+        <button id="dl">Start Downloading</button>
+    </div>
+
+    <p id="status">Ready</p>
+
+    <div id="grid" class="grid">
+        @* render 15 captchas *@
+        @for (var i = 0; i < 15; i++)
+        {
+            @Html.MathCaptcha()
+        }
+    </div>
+
+    <script>
+        const grid   = document.getElementById('grid');
+        const status = document.getElementById('status');
+        const btn    = document.getElementById('dl');
+        const inp    = document.getElementById('count');
+
+        function waitAll() {
+            const imgs = [...grid.querySelectorAll('img')];
+            return Promise.all(imgs.map(i =>
+                i.complete ? null
+                           : new Promise(r => i.onload = r)));
+        }
+
+        async function makeZipBlob() {
+            await waitAll();
+            const zip = new JSZip();
+
+            for (const img of grid.querySelectorAll('img')) {
+                const cvs = document.createElement('canvas');
+                cvs.width  = img.naturalWidth;
+                cvs.height = img.naturalHeight;
+                cvs.getContext('2d').drawImage(img, 0, 0);
+                const blob = await new Promise(r => cvs.toBlob(r, 'image/png'));
+
+                const url   = new URL(img.src, location.origin);
+                const token = url.searchParams.get('t')
+                           || url.searchParams.get('id')
+                           || crypto.randomUUID().replace(/-/g, '').substring(0,10);
+
+                zip.file(`unknown_${token}.png`, blob);
+            }
+
+            status.textContent = 'Packing ZIP…';
+            return zip.generateAsync({ type:'blob' });
+        }
+
+        async function runCycle() {
+            let left    = parseInt(localStorage.getItem('todo')    || '0', 10);
+            let initial = parseInt(localStorage.getItem('initial') || '0', 10);
+
+            if (left <= 0) {
+                status.textContent = 'All downloads complete 🎉';
+                btn.disabled = false;
+                localStorage.removeItem('initial');
+                localStorage.removeItem('todo');
+                return;
+            }
+
+            status.textContent = `Downloading batch ${initial - left + 1} of ${initial}…`;
+            const blobZip = await makeZipBlob();
+
+            // trigger a download via hidden <a>
+            const blobUrl = URL.createObjectURL(blobZip);
+            const a       = document.createElement('a');
+            a.style.display  = 'none';
+            a.href           = blobUrl;
+            a.download       = `captchas_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+
+            left--;
+            localStorage.setItem('todo', left);
+
+            // reload for next batch
+            setTimeout(() => location.reload(), 600);
+        }
+
+        btn.addEventListener('click', () => {
+            const total = parseInt(inp.value, 10);
+            if (!total || total < 1) {
+                alert('Please enter a positive number of batches.');
+                return;
+            }
+            btn.disabled = true;
+            localStorage.setItem('initial', total);
+            localStorage.setItem('todo', total);
+            runCycle();   // first cycle under user gesture
+        });
+
+        // on reload, continue if needed
+        window.addEventListener('DOMContentLoaded', () => {
+            const left = parseInt(localStorage.getItem('todo') || '0', 10);
+            if (left > 0) {
+                btn.disabled = true;
+                runCycle();
+            }
+        });
+    </script>
+</body>
+</html>
