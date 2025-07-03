@@ -5,33 +5,39 @@ on:
     branches: [ main ]
 
 permissions:
-  pages: write       
-  id-token: write   
+  pages: write
+  id-token: write
 
 jobs:
   build:
     runs-on: windows-2022
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install .NET Framework build tools
+      # Install MSBuild (adds it to PATH)
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1
 
-      - name: Restore & build
+      - name: Restore & Build
         shell: cmd
-        run: |
+        run: >
           msbuild MathCaptchaBatch.csproj /t:Restore /p:Configuration=Release
-          msbuild MathCaptchaBatch.csproj /p:Configuration=Release \
-            /p:DeployOnBuild=true \
-            /p:WebPublishMethod=FileSystem \
+          & msbuild MathCaptchaBatch.csproj /p:Configuration=Release
+
+      - name: Publish to filesystem
+        shell: cmd
+        run: >
+          msbuild MathCaptchaBatch.csproj
+            /p:Configuration=Release
+            /p:DeployOnBuild=true
+            /p:WebPublishMethod=FileSystem
             /p:PublishUrl="%GITHUB_WORKSPACE%\publish"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: publish   
+          path: publish
 
   deploy:
     needs: build
@@ -41,5 +47,4 @@ jobs:
       id-token: write
 
     steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v4
