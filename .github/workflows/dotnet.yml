@@ -61,7 +61,7 @@ jobs:
     steps:
       # 6) Download the artifact from the build job
       - name: Download Pages artifact
-        uses: actions/download-pages-artifact@v2
+        uses: actions/download-pages-artifact@v1
 
       # 7) Deploy it to your GitHub Pages endpoint
       - name: Deploy to GitHub Pages
