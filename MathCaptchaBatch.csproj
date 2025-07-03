@@ -12,9 +12,9 @@
   <!-- NEW — supplies System.Web, System.Drawing, System.Net.Http, etc. -->
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNet.Mvc"      Version="5.3.0" />
-    <PackageReference Include="Microsoft.AspNet.Razor"    Version="3.3.0" />
-    <PackageReference Include="Microsoft.AspNet.WebPages" Version="3.3.0" />
+    <PackageReference Include="Microsoft.AspNet.Mvc"      Version="5.2.9" />
+    <PackageReference Include="Microsoft.AspNet.Razor"    Version="3.2.9" />
+    <PackageReference Include="Microsoft.AspNet.WebPages" Version="3.2.9" />
     <PackageReference Include="CaptchaMvc.Mvc5"           Version="1.5.0" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48"
                       Version="1.0.3"
