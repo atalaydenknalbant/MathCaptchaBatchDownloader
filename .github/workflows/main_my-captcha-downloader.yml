@@ -103,5 +103,5 @@ jobs:
         with: 
           app-name: 'my-captcha-downloader'
           slot-name: 'Production'
-          package: 'published'
+          package:  '.' 
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }}
