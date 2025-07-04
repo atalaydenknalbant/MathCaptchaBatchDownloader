@@ -1,4 +1,6 @@
-name: Build and deploy ASP app to Azure Web App - my-captcha-downloader
+# .github/workflows/azure-deploy.yml
+
+name: Build and deploy ASP.NET MVC5 to Azure Web App
 
 on:
   push:
@@ -25,43 +27,38 @@ jobs:
         run: nuget restore MathCaptchaBatchDownloader.csproj
 
       - name: Build project
-        run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release
+        run: msbuild MathCaptchaBatchDownloader.csproj /nologo /verbosity:minimal /p:Configuration=Release
 
       - name: Assemble published site
         shell: pwsh
         run: |
-          # 1) remove old output, recreate structure
+          # clean and recreate published/
           Remove-Item -Recurse -Force published -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path published, published\bin, published\Views | Out-Null
 
-          # 2) copy compiled assembly
+          # copy compiled dll
           Copy-Item -Path "bin\Release\MathCaptchaBatchDownloader.dll" `
                     -Destination published\bin\ -Force
 
-          # 3) copy Views
+          # copy Razor views
           Copy-Item -Path "Views\*" `
                     -Destination published\Views\ -Recurse -Force
 
-          # 4) copy Content if present
-          if (Test-Path "Content") {
-            Copy-Item -Path "Content\*" `
-                      -Destination published\Content\ -Recurse -Force
+          # copy static assets
+          if (Test-Path Content) {
+            Copy-Item -Path "Content\*" -Destination published\Content\ -Recurse -Force
+          }
+          if (Test-Path Scripts) {
+            Copy-Item -Path "Scripts\*" -Destination published\Scripts\ -Recurse -Force
           }
 
-          # 5) copy Scripts if present
-          if (Test-Path "Scripts") {
-            Copy-Item -Path "Scripts\*" `
-                      -Destination published\Scripts\ -Recurse -Force
-          }
+          # copy root config files
+          Copy-Item -Path "Global.asax","Web.config" -Destination published\ -Force
 
-          # 6) copy root files
-          Copy-Item -Path "Global.asax","Web.config" `
-                    -Destination published\ -Force
-
-      - name: Upload artifact for deployment job
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ASP-app
+          name: asp-artifact
           path: published/**
 
   deploy:
@@ -72,12 +69,12 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: ASP-app
+          name: asp-artifact
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'my-captcha-downloader'
           slot-name: 'Production'
-          package: published
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }}
+          package: published
