@@ -12,52 +12,62 @@ jobs:
       contents: read
 
     steps:
+      # 1️⃣ Checkout your code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Make MSBuild available
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
 
+      # 3️⃣ Make nuget.exe available
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
+      # 4️⃣ Restore packages for the project inside the subfolder
       - name: Restore NuGet packages
-        run: nuget restore MathCaptchaBatchDownloader.csproj
+        run: nuget restore MathCaptchaBatchDownloader/MathCaptchaBatchDownloader.csproj
 
+      # 5️⃣ Build that same nested project in Release mode
       - name: Build project
-        run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release
+        run: msbuild "MathCaptchaBatchDownloader/MathCaptchaBatchDownloader.csproj" `
+              /nologo /verbosity:minimal /p:Configuration=Release
 
+      # 6️⃣ Assemble the full website into published/
       - name: Assemble published site
         shell: pwsh
         run: |
-          # 1) remove old output, recreate structure
-          Remove-Item -Recurse -Force published -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path published, published\bin, published\Views | Out-Null
+          $proj = "MathCaptchaBatchDownloader"
 
-          # 2) copy compiled assembly
-          Copy-Item -Path "bin\Release\MathCaptchaBatchDownloader.dll" `
+          # clean and recreate
+          Remove-Item -Recurse -Force published -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path published,published\bin,published\Views | Out-Null
+
+          # copy the compiled DLL
+          Copy-Item -Path "$proj/bin/Release/MathCaptchaBatchDownloader.dll" `
                     -Destination published\bin\ -Force
 
-          # 3) copy Views
-          Copy-Item -Path "Views\*" `
+          # copy Views folder
+          Copy-Item -Path "$proj/Views/*" `
                     -Destination published\Views\ -Recurse -Force
 
-          # 4) copy Content if present
-          if (Test-Path "Content") {
-            Copy-Item -Path "Content\*" `
+          # copy Content if it exists
+          if (Test-Path "$proj/Content") {
+            Copy-Item -Path "$proj/Content/*" `
                       -Destination published\Content\ -Recurse -Force
           }
 
-          # 5) copy Scripts if present
-          if (Test-Path "Scripts") {
-            Copy-Item -Path "Scripts\*" `
+          # copy Scripts if it exists
+          if (Test-Path "$proj/Scripts") {
+            Copy-Item -Path "$proj/Scripts/*" `
                       -Destination published\Scripts\ -Recurse -Force
           }
 
-          # 6) copy root files
-          Copy-Item -Path "Global.asax","Web.config" `
+          # copy Web.config and Global.asax
+          Copy-Item -Path "$proj/Web.config","$proj/Global.asax" `
                     -Destination published\ -Force
 
+      # 7️⃣ Upload that folder as your build artifact
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -69,11 +79,13 @@ jobs:
     needs: build
 
     steps:
+      # 8️⃣ Grab the published/ artifact
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
 
+      # 9️⃣ Deploy it to your Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
