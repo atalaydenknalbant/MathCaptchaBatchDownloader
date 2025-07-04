@@ -28,14 +28,8 @@ jobs:
         run: nuget restore MathCaptchaBatchDownloader.csproj
 
       - name: Publish to folder
-        run: |
-          msbuild MathCaptchaBatchDownloader/MathCaptchaBatchDownloader.csproj ^
-            /nologo ^
-            /verbosity:minimal ^
-            /p:Configuration=Release ^
-            /p:WebPublishMethod=FileSystem ^
-            /p:PublishUrl="published" ^
-            /p:DeleteExistingFiles=True
+        run: msbuild "MathCaptchaBatchDownloader\\MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release /p:WebPublishMethod=FileSystem /p:PublishUrl="published" /p:DeleteExistingFiles=True
+
             
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
