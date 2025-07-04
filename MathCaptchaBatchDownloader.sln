@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathCaptchaBatch", "MathCaptchaBatch.csproj", "{D379B7CF-B469-66C7-430A-9C126DD6F183}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathCaptchaBatchDownloader", "MathCaptchaBatchDownloader.csproj", "{D379B7CF-B469-66C7-430A-9C126DD6F183}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
