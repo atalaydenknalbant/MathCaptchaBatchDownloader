@@ -89,6 +89,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: asp-artifact
+          path: '.'  
+      
+      - name: Show workspace contents
+        run: |
+          echo "PWD: $PWD"
+          echo "Tree:"
+          ls -R .
 
       # 🔟 Deploy to Azure Web App
       - name: Deploy to Azure Web App
@@ -96,5 +103,5 @@ jobs:
         with: 
           app-name: 'my-captcha-downloader'
           slot-name: 'Production'
-          package: 'published/**'
+          package: 'published'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }}
