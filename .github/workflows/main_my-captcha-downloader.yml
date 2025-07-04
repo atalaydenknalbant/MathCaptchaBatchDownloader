@@ -1,13 +1,15 @@
 name: Build and deploy ASP app to Azure Web App - my-captcha-downloader
 
 on:
-  push: { branches: [ main ] }
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
-    permissions: { contents: read }
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -23,38 +25,38 @@ jobs:
         run: nuget restore MathCaptchaBatchDownloader.csproj
 
       - name: Build project
-        run: msbuild "MathCaptchaBatchDownloader.csproj" \
-              /nologo /verbosity:minimal /p:Configuration=Release
+        run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release
 
       - name: Assemble published site
         shell: pwsh
         run: |
-          # create output dirs
+          # 1) remove old output, recreate structure
+          Remove-Item -Recurse -Force published -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path published, published\bin, published\Views | Out-Null
 
-          # copy the compiled DLL from the inner project folder
-          Copy-Item -Path "MathCaptchaBatchDownloader/bin/Release/MathCaptchaBatchDownloader.dll" `
+          # 2) copy compiled assembly
+          Copy-Item -Path "bin\Release\MathCaptchaBatchDownloader.dll" `
                     -Destination published\bin\ -Force
 
-          # copy Views
-          Copy-Item -Path "MathCaptchaBatchDownloader/Views/*" `
+          # 3) copy Views
+          Copy-Item -Path "Views\*" `
                     -Destination published\Views\ -Recurse -Force
 
-          # copy Content if present
-          if (Test-Path "MathCaptchaBatchDownloader/Content") {
-            Copy-Item -Path "MathCaptchaBatchDownloader/Content/*" `
+          # 4) copy Content if present
+          if (Test-Path "Content") {
+            Copy-Item -Path "Content\*" `
                       -Destination published\Content\ -Recurse -Force
           }
 
-          # copy Scripts if present
-          if (Test-Path "MathCaptchaBatchDownloader/Scripts") {
-            Copy-Item -Path "MathCaptchaBatchDownloader/Scripts/*" `
+          # 5) copy Scripts if present
+          if (Test-Path "Scripts") {
+            Copy-Item -Path "Scripts\*" `
                       -Destination published\Scripts\ -Recurse -Force
           }
 
-          # copy Web.config and Global.asax from the inner folder
-          Copy-Item -Path "MathCaptchaBatchDownloader/Web.config"   published\ -Force
-          Copy-Item -Path "MathCaptchaBatchDownloader/Global.asax" published\ -Force
+          # 6) copy root files
+          Copy-Item -Path "Global.asax","Web.config" `
+                    -Destination published\ -Force
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -69,7 +71,8 @@ jobs:
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
-        with: { name: ASP-app }
+        with:
+          name: ASP-app
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
