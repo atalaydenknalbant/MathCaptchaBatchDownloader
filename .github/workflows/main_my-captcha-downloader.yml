@@ -1,60 +1,63 @@
+# .github/workflows/azure-deploy.yml
 name: Build and deploy ASP app to Azure Web App - my-captcha-downloader
 
-# Trigger on push to main or manual dispatch
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read   # for actions/checkout
+      contents: read
 
     steps:
-      # 1️⃣ Check out repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Make MSBuild available
-      - name: Setup MSBuild path
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
 
-      # 3️⃣ Make nuget.exe available
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
-      # 4️⃣ Restore all package references in your .csproj
       - name: Restore NuGet packages
         run: nuget restore MathCaptchaBatchDownloader.csproj
 
-      # 5️⃣ Build your MVC5 project in Release mode
       - name: Build project
         run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release
 
-      # 6️⃣ Assemble a full-site folder under "published/"
       - name: Assemble published site
+        shell: pwsh
         run: |
-          # create output folder
-          mkdir published
-          # copy the compiled DLL
-          mkdir published\bin
-          copy "MathCaptchaBatchDownloader\bin\Release\MathCaptchaBatchDownloader.dll" published\bin\
-          # copy your Views (Razor .cshtml)
-          xcopy "MathCaptchaBatchDownloader\Views" published\Views /E /I /Y
-          # copy static Content if you have it
-          if exist MathCaptchaBatchDownloader\Content (
-            xcopy "MathCaptchaBatchDownloader\Content" published\Content /E /I /Y
-          )
-          # copy Scripts folder if present
-          for /d %%D in (MathCaptchaBatchDownloader\Scripts*) do xcopy "%%D" "published\%%~nD" /E /I /Y
-          # copy root config files
-          copy MathCaptchaBatchDownloader\Web.config published\
-          copy MathCaptchaBatchDownloader\Global.asax published\
+          # create output dirs
+          New-Item -ItemType Directory -Force -Path published, published\bin, published\Views | Out-Null
 
-      # 7️⃣ Upload that published/ folder as an artifact
+          # copy compiled DLL
+          Copy-Item "MathCaptchaBatchDownloader\bin\Release\MathCaptchaBatchDownloader.dll" `
+                    -Destination published\bin\ -Force
+
+          # copy Views
+          Copy-Item "MathCaptchaBatchDownloader\Views\*" `
+                    -Destination published\Views\ -Recurse -Force
+
+          # copy Content if present
+          if (Test-Path "MathCaptchaBatchDownloader\Content") {
+            Copy-Item "MathCaptchaBatchDownloader\Content\*" `
+                      -Destination published\Content\ -Recurse -Force
+          }
+
+          # copy Scripts if present
+          if (Test-Path "MathCaptchaBatchDownloader\Scripts") {
+            Copy-Item "MathCaptchaBatchDownloader\Scripts\*" `
+                      -Destination published\Scripts\ -Recurse -Force
+          }
+
+          # copy Web.config and Global.asax
+          Copy-Item "MathCaptchaBatchDownloader\Web.config" published\ -Force
+          Copy-Item "MathCaptchaBatchDownloader\Global.asax" published\ -Force
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -66,18 +69,15 @@ jobs:
     needs: build
 
     steps:
-      # 8️⃣ Download the published/ artifact
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
 
-      # 9️⃣ Deploy to Azure Web App
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'my-captcha-downloader'                           # ← your Azure Web App name
+          app-name: 'my-captcha-downloader'
           slot-name: 'Production'
-          package: 'published'                                        # point at the folder you assembled
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }} 
+          package: published
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }}
