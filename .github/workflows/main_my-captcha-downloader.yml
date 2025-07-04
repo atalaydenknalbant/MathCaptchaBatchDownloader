@@ -12,58 +12,67 @@ jobs:
       contents: read
 
     steps:
-      # 1️⃣ Check out your repo
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Make MSBuild available
+      # 2️⃣ Setup MSBuild
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.0.2
 
-      # 3️⃣ Make nuget.exe available
+      # 3️⃣ Setup NuGet
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
-      # 4️⃣ Restore all NuGet packages
+      # 4️⃣ Restore NuGet packages
       - name: Restore NuGet packages
         run: nuget restore MathCaptchaBatchDownloader.csproj
 
-      # 5️⃣ Build the project in Release
+      # 5️⃣ Build project in Release
       - name: Build project
         run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release
 
-      # 6️⃣ Debug: dump directory tree to locate your build outputs
-      - name: Dump directory tree (depth=3)
+      # 6️⃣ Debug: dump tree so we see exactly where files are
+      - name: Dump directory tree
         shell: pwsh
         run: |
-          Write-Host "=== Repository root contents (depth=3) ==="
-          Get-ChildItem -Path . -Recurse -Depth 3 |
-            ForEach-Object { Write-Host $_.FullName }
+          Write-Host "=== Repo root (depth=1) ==="
+          Get-ChildItem -Path . -Depth 1 | ForEach-Object { Write-Host $_.FullName }
+          Write-Host "=== bin folder (depth=1) ==="
+          if (Test-Path bin) {
+            Get-ChildItem -Path bin -Recurse -Depth 1 | ForEach-Object { Write-Host $_.FullName }
+          }
 
-      # 7️⃣ Assemble the published site into `published/`
+      # 7️⃣ Assemble published site
       - name: Assemble published site
         shell: pwsh
         run: |
-          # remove any stale outputs
+          # remove old published/
           Remove-Item -Recurse -Force published -ErrorAction SilentlyContinue
 
           # recreate folder structure
           New-Item -ItemType Directory -Force -Path published,published\bin,published\Views | Out-Null
 
-          # copy the compiled DLL (adjust path if needed based on the dump above)
-          Copy-Item -Path "bin\Release\MathCaptchaBatchDownloader.dll" -Destination published\bin\ -Force
+          # copy all compiled DLLs & deps
+          Copy-Item -Path "bin\*" -Destination published\bin -Recurse -Force
 
           # copy Razor views
-          Copy-Item -Path "Views\*" -Destination published\Views\ -Recurse -Force
+          Copy-Item -Path "Views\*" -Destination published\Views -Recurse -Force
 
-          # copy static assets if present
-          if (Test-Path "Content") { Copy-Item "Content\*" published\Content\ -Recurse -Force }
-          if (Test-Path "Scripts") { Copy-Item "Scripts\*" published\Scripts\ -Recurse -Force }
+          # copy static Content if present
+          if (Test-Path Content) {
+            Copy-Item -Path "Content\*" -Destination published\Content -Recurse -Force
+          }
 
-          # copy MVC entrypoints/config
-          Copy-Item -Path "Global.asax","Web.config" published\ -Force
+          # copy Scripts if present
+          if (Test-Path Scripts) {
+            Copy-Item -Path "Scripts\*" -Destination published\Scripts -Recurse -Force
+          }
 
-      # 8️⃣ Upload the assembled site as an artifact
+          # copy config + Global.asax
+          Copy-Item -Path "Web.config","Global.asax" -Destination published -Force
+
+      # 8️⃣ Upload artifact
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -75,7 +84,7 @@ jobs:
     needs: build
 
     steps:
-      # 9️⃣ Download the artifact
+      # 9️⃣ Download artifact
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
