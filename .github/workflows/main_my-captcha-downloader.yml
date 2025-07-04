@@ -77,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: asp-artifact
-          path: published/**
+          path: published
 
   deploy:
     runs-on: windows-latest
@@ -91,10 +91,10 @@ jobs:
           name: asp-artifact
           path: '.'  
       
-      - name: Show workspace contents
+      # 2️⃣ sanity‐check: list what you got
+      - name: List workspace
         run: |
-          echo "PWD: $PWD"
-          echo "Tree:"
+          pwd
           ls -R .
 
       # 🔟 Deploy to Azure Web App
