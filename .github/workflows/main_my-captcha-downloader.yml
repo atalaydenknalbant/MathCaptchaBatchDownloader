@@ -20,10 +20,10 @@ jobs:
         uses: NuGet/setup-nuget@v1.0.5
 
       - name: Restore NuGet packages
-        run: nuget restore MathCaptchaBatchDownloader/MathCaptchaBatchDownloader.csproj
+        run: nuget restore MathCaptchaBatchDownloader.csproj
 
       - name: Build project
-        run: msbuild "MathCaptchaBatchDownloader/MathCaptchaBatchDownloader.csproj" \
+        run: msbuild "MathCaptchaBatchDownloader.csproj" \
               /nologo /verbosity:minimal /p:Configuration=Release
 
       - name: Assemble published site
