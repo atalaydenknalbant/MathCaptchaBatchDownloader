@@ -1,8 +1,6 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy ASP app to Azure Web App - my-captcha-downloader
 
+# Trigger on push to main or manual dispatch
 on:
   push:
     branches:
@@ -13,46 +11,73 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read   # for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      # 1️⃣ Check out repo
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      # 2️⃣ Make MSBuild available
       - name: Setup MSBuild path
         uses: microsoft/setup-msbuild@v1.0.2
 
+      # 3️⃣ Make nuget.exe available
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v1.0.5
 
+      # 4️⃣ Restore all package references in your .csproj
       - name: Restore NuGet packages
         run: nuget restore MathCaptchaBatchDownloader.csproj
 
-      - name: Publish to folder
-        run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release /p:WebPublishMethod=FileSystem /p:PublishUrl="published" /p:DeleteExistingFiles=True
+      # 5️⃣ Build your MVC5 project in Release mode
+      - name: Build project
+        run: msbuild "MathCaptchaBatchDownloader.csproj" /nologo /verbosity:minimal /p:Configuration=Release
 
+      # 6️⃣ Assemble a full-site folder under "published/"
+      - name: Assemble published site
+        run: |
+          # create output folder
+          mkdir published
+          # copy the compiled DLL
+          mkdir published\bin
+          copy "MathCaptchaBatchDownloader\bin\Release\MathCaptchaBatchDownloader.dll" published\bin\
+          # copy your Views (Razor .cshtml)
+          xcopy "MathCaptchaBatchDownloader\Views" published\Views /E /I /Y
+          # copy static Content if you have it
+          if exist MathCaptchaBatchDownloader\Content (
+            xcopy "MathCaptchaBatchDownloader\Content" published\Content /E /I /Y
+          )
+          # copy Scripts folder if present
+          for /d %%D in (MathCaptchaBatchDownloader\Scripts*) do xcopy "%%D" "published\%%~nD" /E /I /Y
+          # copy root config files
+          copy MathCaptchaBatchDownloader\Web.config published\
+          copy MathCaptchaBatchDownloader\Global.asax published\
 
-            
+      # 7️⃣ Upload that published/ folder as an artifact
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: ASP-app
-          path: "published/**" 
+          path: published/**
 
   deploy:
     runs-on: windows-latest
     needs: build
-    
+
     steps:
+      # 8️⃣ Download the published/ artifact
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: ASP-app
-      
+
+      # 9️⃣ Deploy to Azure Web App
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'my-captcha-downloader'
+          app-name: 'my-captcha-downloader'                           # ← your Azure Web App name
           slot-name: 'Production'
-          package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }}
+          package: 'published'                                        # point at the folder you assembled
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7174F4F018AD442D85E55EC0D16A6233 }} 
