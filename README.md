@@ -65,7 +65,7 @@ MathCaptchaBatchDownloader/
 
 ---
 
-## Prerequisites
+## ✅Prerequisites
 | Tool                                       | Why                                                  |
 |--------------------------------------------|------------------------------------------------------|
 | **.NET SDK 8.x**                           | builds the SDK‑style csproj (targets net48)          |
