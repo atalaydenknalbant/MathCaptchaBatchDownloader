@@ -25,7 +25,7 @@ batches you want (default = 2000).
 
 ---
 
-## Project goals
+## 🎯Project goals
 
 * **Pixel‑perfect capture** – copies rendered pixels from the
   browser’s memory, so you never get blank captchas.  
